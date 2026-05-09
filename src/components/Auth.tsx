@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { User } from '../types';
-import { Lock, User as UserIcon } from 'lucide-react';
+import { Lock, User as UserIcon, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface AuthProps {
@@ -8,21 +8,39 @@ interface AuthProps {
 }
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
+  const [savedName, setSavedName] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const stored = localStorage.getItem('dochat_username');
+    if (stored) setSavedName(stored);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name && password) {
-      // Generate a deterministic code based on name and password for "authentication"
-      // In a real app, this would be more secure.
-      const code = btoa(name + password).substring(0, 8).toLowerCase();
-      onLogin({
-        id: Math.random().toString(36).substr(2, 9),
-        name,
-        code
-      });
+    const displayName = savedName || name;
+    if (!displayName || !password) {
+      setError('من فضلك أدخل جميع البيانات');
+      return;
     }
+
+    const code = btoa(displayName + password).substring(0, 8).toLowerCase();
+    if (!savedName) {
+      localStorage.setItem('dochat_username', displayName);
+    }
+    setError('');
+    onLogin({
+      id: Math.random().toString(36).substr(2, 9),
+      name: displayName,
+      code
+    });
+  };
+
+  const handleForgetName = () => {
+    localStorage.removeItem('dochat_username');
+    setSavedName(null);
   };
 
   return (
@@ -36,28 +54,35 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mb-4">
             <Lock className="text-white" size={32} />
           </div>
-          <h1 className="text-2xl font-bold text-white">GhostChat</h1>
-          <p className="text-zinc-400 text-sm">Secure, ephemeral messaging</p>
+          <h1 className="text-2xl font-bold text-white">DoChat</h1>
+          <p className="text-zinc-400 text-sm">
+            {savedName ? `أهلاً، ${savedName}` : 'سجّل دخولك'}
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Display Name</label>
-            <div className="relative">
-              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                placeholder="Enter your name"
-                required
-              />
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Name field — only for new users */}
+          {!savedName && (
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">اسمك</label>
+              <div className="relative">
+                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  placeholder="ادخل اسمك"
+                  required
+                  dir="rtl"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
+          {/* Password field — always shown */}
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Security Password</label>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">كلمة المرور</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
               <input
@@ -67,17 +92,32 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                 placeholder="••••••••"
                 required
+                autoFocus={!!savedName}
               />
             </div>
           </div>
 
+          {error && (
+            <p className="text-red-400 text-sm text-center">{error}</p>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors shadow-lg"
+            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors shadow-lg"
           >
-            Access App
+            دخول
+            <ArrowRight size={18} />
           </button>
         </form>
+
+        {savedName && (
+          <button
+            onClick={handleForgetName}
+            className="w-full mt-4 text-zinc-500 hover:text-zinc-300 text-xs text-center transition-colors"
+          >
+            مش أنا — تغيير الحساب
+          </button>
+        )}
       </motion.div>
     </div>
   );

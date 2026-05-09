@@ -11,6 +11,7 @@ export const usePeer = (user: User | null) => {
     const saved = localStorage.getItem('pending_messages');
     return saved ? JSON.parse(saved) : [];
   });
+  const [partnerPeerId, setPartnerPeerId] = useState<string | null>(null);
 
   const connRef = useRef<DataConnection | null>(null);
 
@@ -79,7 +80,7 @@ export const usePeer = (user: User | null) => {
       setIsConnected(true);
       setConnection(conn);
       connRef.current = conn;
-      // Save partner code for persistence
+      setPartnerPeerId(remoteId);
       localStorage.setItem('partner_code', remoteId);
     });
 
@@ -117,6 +118,7 @@ export const usePeer = (user: User | null) => {
     setMessages,
     connectToPeer,
     sendMessage,
-    markMediaAsViewed
+    markMediaAsViewed,
+    partnerPeerId
   };
 };

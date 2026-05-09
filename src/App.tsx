@@ -1,14 +1,29 @@
 import { useState, useEffect } from 'react';
+import { LandingPage } from './components/LandingPage';
 import { Auth } from './components/Auth';
 import { ConnectionManager } from './components/ConnectionManager';
 import { ChatRoom } from './components/ChatRoom';
 import { usePeer } from './hooks/usePeer';
+import { usePushNotifications } from './hooks/usePushNotifications';
 import type { User, Message } from './types';
 
-const AUTO_DELETE_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
+const AUTO_DELETE_INTERVAL = 12 * 60 * 60 * 1000;
+
+type AppView = 'landing' | 'auth' | 'app';
 
 function App() {
-  const [authenticatedUser, setAuthenticatedUser] = useState<User | null>(null);
+  const [view, setView] = useState<AppView>(() => {
+    const hasUser = !!localStorage.getItem('ghost_user');
+    const hasName = !!localStorage.getItem('dochat_username');
+    if (hasUser) return 'app';
+    if (hasName) return 'auth';
+    return 'landing';
+  });
+
+  const [authenticatedUser, setAuthenticatedUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('ghost_user');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   const {
     isConnected,
@@ -16,21 +31,23 @@ function App() {
     setMessages,
     connectToPeer,
     sendMessage,
-    markMediaAsViewed
+    markMediaAsViewed,
+    partnerPeerId
   } = usePeer(authenticatedUser);
 
-  // Persistence and auto-deletion logic
+  const { notifyOffline } = usePushNotifications(
+    authenticatedUser?.code || null,
+    authenticatedUser?.name || null
+  );
+
+  // Persistence and auto-deletion
   useEffect(() => {
     if (!authenticatedUser) return;
-
-    // Load messages from local storage
     const savedMessages = localStorage.getItem(`messages_${authenticatedUser.id}`);
     if (savedMessages) {
       const parsed: Message[] = JSON.parse(savedMessages);
       const now = Date.now();
-      // Filter out messages older than 12 hours on load
-      const validMessages = parsed.filter(m => now - m.timestamp < AUTO_DELETE_INTERVAL);
-      setMessages(validMessages);
+      setMessages(parsed.filter(m => now - m.timestamp < AUTO_DELETE_INTERVAL));
     }
   }, [authenticatedUser, setMessages]);
 
@@ -40,31 +57,40 @@ function App() {
     }
   }, [authenticatedUser, messages]);
 
-  // Periodic cleanup of old messages
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
       setMessages(prev => prev.filter(m => now - m.timestamp < AUTO_DELETE_INTERVAL));
-    }, 60000); // Check every minute
-
+    }, 60000);
     return () => clearInterval(interval);
   }, [setMessages]);
 
   const handleLogin = (newUser: User) => {
     setAuthenticatedUser(newUser);
     localStorage.setItem('ghost_user', JSON.stringify(newUser));
+    setView('app');
   };
 
   useEffect(() => {
     if (authenticatedUser && !isConnected) {
       const savedPartner = localStorage.getItem('partner_code');
-      if (savedPartner) {
-        connectToPeer(savedPartner);
-      }
+      if (savedPartner) connectToPeer(savedPartner);
     }
   }, [authenticatedUser, isConnected, connectToPeer]);
 
-  if (!authenticatedUser) {
+  // Enhanced sendMessage with offline push notification
+  const handleSendMessage = async (message: Message) => {
+    const sent = sendMessage(message);
+    if (!sent && partnerPeerId && authenticatedUser) {
+      await notifyOffline(partnerPeerId, authenticatedUser.name, message.text || 'أرسل لك ملفاً');
+    }
+  };
+
+  if (view === 'landing') {
+    return <LandingPage onEnterApp={() => setView('auth')} />;
+  }
+
+  if (view === 'auth' || !authenticatedUser) {
     return <Auth onLogin={handleLogin} />;
   }
 
@@ -82,7 +108,7 @@ function App() {
     <ChatRoom
       user={authenticatedUser}
       messages={messages}
-      onSendMessage={sendMessage}
+      onSendMessage={handleSendMessage}
       onViewMedia={markMediaAsViewed}
     />
   );
