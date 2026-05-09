@@ -26,7 +26,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       return;
     }
 
-    const code = btoa(displayName + password).substring(0, 8).toLowerCase();
+    const code = btoa(unescape(encodeURIComponent(displayName + password))).substring(0, 8).toLowerCase();
     if (!savedName) {
       localStorage.setItem('dochat_username', displayName);
     }
