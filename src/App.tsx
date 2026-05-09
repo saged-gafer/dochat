@@ -71,6 +71,13 @@ function App() {
     setView('app');
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('ghost_user');
+    localStorage.removeItem('partner_code');
+    setAuthenticatedUser(null);
+    setView('auth');
+  };
+
   useEffect(() => {
     if (authenticatedUser && !isConnected) {
       const savedPartner = localStorage.getItem('partner_code');
@@ -110,6 +117,7 @@ function App() {
       messages={messages}
       onSendMessage={handleSendMessage}
       onViewMedia={markMediaAsViewed}
+      onLogout={handleLogout}
     />
   );
 }

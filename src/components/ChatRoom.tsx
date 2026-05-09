@@ -2,16 +2,17 @@ import React, { useEffect, useRef } from 'react';
 import type { Message, User } from '../types';
 import { MessageItem } from './MessageItem';
 import { ChatInput } from './ChatInput';
-import { Lock, ShieldCheck, Info } from 'lucide-react';
+import { Lock, ShieldCheck, LogOut } from 'lucide-react';
 
 interface ChatRoomProps {
   user: User;
   messages: Message[];
   onSendMessage: (message: Message) => void;
   onViewMedia: (id: string) => void;
+  onLogout: () => void;
 }
 
-export const ChatRoom: React.FC<ChatRoomProps> = ({ user, messages, onSendMessage, onViewMedia }) => {
+export const ChatRoom: React.FC<ChatRoomProps> = ({ user, messages, onSendMessage, onViewMedia, onLogout }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,9 +37,14 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ user, messages, onSendMessag
             </div>
           </div>
         </div>
-        <div className="text-zinc-500 hover:text-zinc-300 cursor-pointer">
-          <Info size={20} />
-        </div>
+        <button
+          onClick={onLogout}
+          title="تسجيل الخروج"
+          className="flex items-center gap-1.5 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-red-500/10"
+        >
+          <LogOut size={18} />
+          <span className="text-xs font-medium">خروج</span>
+        </button>
       </header>
 
       {/* Info Banner */}
