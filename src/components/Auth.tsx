@@ -8,17 +8,18 @@ interface AuthProps {
 }
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
-  const [name, setName] = useState('');
+  const [savedName] = useState(() => localStorage.getItem('ghost_user_name') || '');
+  const [name, setName] = useState(savedName);
   const [password, setPassword] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name && password) {
+      localStorage.setItem('ghost_user_name', name);
       // Generate a deterministic code based on name and password for "authentication"
-      // In a real app, this would be more secure.
       const code = btoa(name + password).substring(0, 8).toLowerCase();
       onLogin({
-        id: Math.random().toString(36).substr(2, 9),
+        id: name, // Use name as ID for consistency
         name,
         code
       });
@@ -41,20 +42,38 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Display Name</label>
-            <div className="relative">
-              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                placeholder="Enter your name"
-                required
-              />
+          {!savedName && (
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Display Name</label>
+              <div className="relative">
+                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  placeholder="Enter your name"
+                  required
+                />
+              </div>
             </div>
-          </div>
+          )}
+
+          {savedName && (
+            <div className="text-center mb-4">
+              <p className="text-zinc-400 text-sm">Welcome back,</p>
+              <p className="text-white font-bold text-lg">{savedName}</p>
+              <button
+                onClick={() => {
+                  localStorage.removeItem('ghost_user_name');
+                  window.location.reload();
+                }}
+                className="text-indigo-400 text-xs hover:underline"
+              >
+                Not you? Switch account
+              </button>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-zinc-400 mb-2">Security Password</label>

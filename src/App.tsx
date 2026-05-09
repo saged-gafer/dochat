@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Auth } from './components/Auth';
 import { ConnectionManager } from './components/ConnectionManager';
 import { ChatRoom } from './components/ChatRoom';
+import { LandingPage } from './components/LandingPage';
 import { usePeer } from './hooks/usePeer';
 import type { User, Message } from './types';
 
@@ -9,6 +10,7 @@ const AUTO_DELETE_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
 function App() {
   const [authenticatedUser, setAuthenticatedUser] = useState<User | null>(null);
+  const [showLanding] = useState(!window.location.pathname.startsWith('/app'));
 
   const {
     isConnected,
@@ -63,6 +65,10 @@ function App() {
       }
     }
   }, [authenticatedUser, isConnected, connectToPeer]);
+
+  if (showLanding) {
+    return <LandingPage />;
+  }
 
   if (!authenticatedUser) {
     return <Auth onLogin={handleLogin} />;
