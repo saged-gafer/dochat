@@ -22,7 +22,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     e.preventDefault();
     const displayName = savedName || name;
     if (!displayName || !password) {
-      setError('من فضلك أدخل جميع البيانات');
+      setError('Please fill in all fields.');
       return;
     }
 
@@ -41,6 +41,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const handleForgetName = () => {
     localStorage.removeItem('dochat_username');
     setSavedName(null);
+    setPassword('');
   };
 
   return (
@@ -55,41 +56,38 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <Lock className="text-white" size={32} />
           </div>
           <h1 className="text-2xl font-bold text-white">DoChat</h1>
-          <p className="text-zinc-400 text-sm">
-            {savedName ? `أهلاً، ${savedName}` : 'سجّل دخولك'}
+          <p className="text-zinc-400 text-sm mt-1">
+            {savedName ? `Welcome back, ${savedName}` : 'Create your secure account'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Name field — only for new users */}
           {!savedName && (
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">اسمك</label>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Display Name</label>
               <div className="relative">
                 <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                  placeholder="ادخل اسمك"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  placeholder="Enter your name"
                   required
-                  dir="rtl"
                 />
               </div>
             </div>
           )}
 
-          {/* Password field — always shown */}
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">كلمة المرور</label>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                 placeholder="••••••••"
                 required
                 autoFocus={!!savedName}
@@ -105,7 +103,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             type="submit"
             className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors shadow-lg"
           >
-            دخول
+            {savedName ? 'Sign In' : 'Create Account'}
             <ArrowRight size={18} />
           </button>
         </form>
@@ -115,7 +113,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             onClick={handleForgetName}
             className="w-full mt-4 text-zinc-500 hover:text-zinc-300 text-xs text-center transition-colors"
           >
-            مش أنا — تغيير الحساب
+            Not you? Switch account
           </button>
         )}
       </motion.div>

@@ -46,33 +46,42 @@ export const ChatInput: React.FC<ChatInputProps> = ({ user, onSendMessage }) => 
       };
       reader.readAsDataURL(file);
     }
+    e.target.value = '';
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   return (
-    <div className="p-4 bg-zinc-900 border-t border-zinc-800">
+    <div className="px-4 py-3 bg-zinc-900 border-t border-zinc-800">
       {preview && (
-        <div className="mb-4 relative inline-block">
+        <div className="mb-3 relative inline-block">
           {preview.type === 'image' ? (
-            <img src={preview.url} alt="Preview" className="h-32 rounded-lg border border-zinc-700" />
+            <img src={preview.url} alt="Preview" className="h-28 rounded-lg border border-zinc-700 object-cover" />
           ) : (
-            <video src={preview.url} className="h-32 rounded-lg border border-zinc-700" />
+            <video src={preview.url} className="h-28 rounded-lg border border-zinc-700" />
           )}
           <button
             onClick={() => setPreview(null)}
-            className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 text-white"
+            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 rounded-full p-1 text-white transition-colors"
           >
-            <X size={14} />
+            <X size={12} />
           </button>
         </div>
       )}
 
-      <form onSubmit={handleSend} className="flex gap-2">
+      <form onSubmit={handleSend} className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="p-2 text-zinc-400 hover:text-white transition-colors"
+          className="p-2 text-zinc-400 hover:text-indigo-400 transition-colors flex-shrink-0"
+          title="Attach image or video"
         >
-          <ImageIcon size={24} />
+          <ImageIcon size={22} />
         </button>
         <input
           type="file"
@@ -86,16 +95,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({ user, onSendMessage }) => 
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Type a message..."
-          className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
         />
 
         <button
           type="submit"
           disabled={!text.trim() && !preview}
-          className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white p-2 rounded-lg transition-colors"
+          className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white p-2.5 rounded-xl transition-colors flex-shrink-0"
         >
-          <Send size={24} />
+          <Send size={18} />
         </button>
       </form>
     </div>
