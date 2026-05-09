@@ -8,10 +8,7 @@ import type { User, Message } from './types';
 const AUTO_DELETE_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
 function App() {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('ghost_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [authenticatedUser, setAuthenticatedUser] = useState<User | null>(null);
 
   const {
     isConnected,
@@ -20,14 +17,14 @@ function App() {
     connectToPeer,
     sendMessage,
     markMediaAsViewed
-  } = usePeer(user);
+  } = usePeer(authenticatedUser);
 
   // Persistence and auto-deletion logic
   useEffect(() => {
-    if (!user) return;
+    if (!authenticatedUser) return;
 
     // Load messages from local storage
-    const savedMessages = localStorage.getItem(`messages_${user.id}`);
+    const savedMessages = localStorage.getItem(`messages_${authenticatedUser.id}`);
     if (savedMessages) {
       const parsed: Message[] = JSON.parse(savedMessages);
       const now = Date.now();
@@ -35,13 +32,13 @@ function App() {
       const validMessages = parsed.filter(m => now - m.timestamp < AUTO_DELETE_INTERVAL);
       setMessages(validMessages);
     }
-  }, [user, setMessages]);
+  }, [authenticatedUser, setMessages]);
 
   useEffect(() => {
-    if (user && messages.length > 0) {
-      localStorage.setItem(`messages_${user.id}`, JSON.stringify(messages));
+    if (authenticatedUser && messages.length > 0) {
+      localStorage.setItem(`messages_${authenticatedUser.id}`, JSON.stringify(messages));
     }
-  }, [user, messages]);
+  }, [authenticatedUser, messages]);
 
   // Periodic cleanup of old messages
   useEffect(() => {
@@ -54,18 +51,27 @@ function App() {
   }, [setMessages]);
 
   const handleLogin = (newUser: User) => {
-    setUser(newUser);
+    setAuthenticatedUser(newUser);
     localStorage.setItem('ghost_user', JSON.stringify(newUser));
   };
 
-  if (!user) {
+  useEffect(() => {
+    if (authenticatedUser && !isConnected) {
+      const savedPartner = localStorage.getItem('partner_code');
+      if (savedPartner) {
+        connectToPeer(savedPartner);
+      }
+    }
+  }, [authenticatedUser, isConnected, connectToPeer]);
+
+  if (!authenticatedUser) {
     return <Auth onLogin={handleLogin} />;
   }
 
-  if (!isConnected) {
+  if (!isConnected && !localStorage.getItem('partner_code')) {
     return (
       <ConnectionManager
-        user={user}
+        user={authenticatedUser}
         onConnect={connectToPeer}
         isConnected={isConnected}
       />
@@ -74,7 +80,7 @@ function App() {
 
   return (
     <ChatRoom
-      user={user}
+      user={authenticatedUser}
       messages={messages}
       onSendMessage={sendMessage}
       onViewMedia={markMediaAsViewed}

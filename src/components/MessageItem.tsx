@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Message } from '../types';
 import { format } from 'date-fns';
-import { Eye, EyeOff, PlayCircle } from 'lucide-react';
+import { Eye, EyeOff, PlayCircle, Clock } from 'lucide-react';
 
 interface MessageItemProps {
   message: Message;
@@ -11,15 +11,35 @@ interface MessageItemProps {
 
 export const MessageItem: React.FC<MessageItemProps> = ({ message, isMe, onViewMedia }) => {
   const [showMedia, setShowMedia] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleMediaClick = () => {
     if (!message.media?.viewed) {
       setShowMedia(true);
+      if (message.media?.type === 'image') {
+        setTimeLeft(15);
+      }
     }
   };
 
-  // Only mark as viewed when the component unmounts or after a reasonable viewing time
-  // Or when the user closes the media. For simplicity, let's add a "Close" button when viewing.
+  useEffect(() => {
+    if (timeLeft !== null && timeLeft > 0) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (timeLeft === 0) {
+      onViewMedia(message.id);
+      setShowMedia(false);
+      setTimeLeft(null);
+    }
+  }, [timeLeft, message.id, onViewMedia]);
+
+  const handleVideoEnded = () => {
+    if (!isMe) {
+      onViewMedia(message.id);
+      setShowMedia(false);
+    }
+  };
 
   return (
     <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-4`}>
@@ -43,19 +63,34 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isMe, onViewM
                 {showMedia || isMe ? (
                   <div className="relative">
                     {message.media.type === 'image' ? (
-                      <img src={message.media.url} alt="Shared" className="max-h-60 rounded-lg" />
+                      <>
+                        <img src={message.media.url} alt="Shared" className="max-h-60 rounded-lg" />
+                        {timeLeft !== null && (
+                          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1 text-[10px] text-white font-bold border border-white/20">
+                            <Clock size={10} />
+                            {timeLeft}s
+                          </div>
+                        )}
+                      </>
                     ) : (
-                      <video src={message.media.url} autoPlay controls className="max-h-60 rounded-lg" />
+                      <video
+                        ref={videoRef}
+                        src={message.media.url}
+                        autoPlay
+                        controls
+                        onEnded={handleVideoEnded}
+                        className="max-h-60 rounded-lg"
+                      />
                     )}
-                    {!isMe && !message.media.viewed && (
-                      <button
+                    {!isMe && !message.media.viewed && !timeLeft && message.media.type === 'image' && (
+                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           onViewMedia(message.id);
                         }}
                         className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] px-2 py-1 rounded-full shadow-lg font-bold"
                       >
-                        CLOSE & DELETE
+                        DELETE
                       </button>
                     )}
                   </div>

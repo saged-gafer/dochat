@@ -7,6 +7,10 @@ export const usePeer = (user: User | null) => {
   const [connection, setConnection] = useState<DataConnection | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [pendingMessages, setPendingMessages] = useState<Message[]>(() => {
+    const saved = localStorage.getItem('pending_messages');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const connRef = useRef<DataConnection | null>(null);
 
@@ -45,6 +49,23 @@ export const usePeer = (user: User | null) => {
     };
   }, [user]);
 
+  // Handle pending messages when connected
+  useEffect(() => {
+    if (isConnected && pendingMessages.length > 0 && connRef.current?.open) {
+      pendingMessages.forEach(msg => {
+        connRef.current?.send(msg);
+      });
+      setPendingMessages([]);
+      localStorage.removeItem('pending_messages');
+    }
+  }, [isConnected, pendingMessages]);
+
+  useEffect(() => {
+    if (pendingMessages.length > 0) {
+      localStorage.setItem('pending_messages', JSON.stringify(pendingMessages));
+    }
+  }, [pendingMessages]);
+
   const connectToPeer = useCallback((remoteId: string) => {
     if (!peer) return;
 
@@ -58,6 +79,8 @@ export const usePeer = (user: User | null) => {
       setIsConnected(true);
       setConnection(conn);
       connRef.current = conn;
+      // Save partner code for persistence
+      localStorage.setItem('partner_code', remoteId);
     });
 
     conn.on('close', () => {
@@ -68,12 +91,16 @@ export const usePeer = (user: User | null) => {
   }, [peer]);
 
   const sendMessage = useCallback((message: Message) => {
+    setMessages((prev) => [...prev, message]);
+
     if (connRef.current && connRef.current.open) {
       connRef.current.send(message);
-      setMessages((prev) => [...prev, message]);
       return true;
+    } else {
+      // Queue message if offline
+      setPendingMessages((prev) => [...prev, message]);
+      return false;
     }
-    return false;
   }, []);
 
   const markMediaAsViewed = useCallback((messageId: string) => {
